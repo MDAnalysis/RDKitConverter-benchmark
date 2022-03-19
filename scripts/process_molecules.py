@@ -1,10 +1,18 @@
+import os
 import gzip
 import multiprocessing as mp
 from tqdm.auto import tqdm
-from rdkit import Chem
+from rdkit import Chem, RDLogger
 from rdkit.Chem.rdChemReactions import ReactionFromSmarts
 from utils import ROOT, DATA, N_WORKERS, apply_reaction
 
+
+# ignore warnings and errors
+RDLogger.DisableLog('rdApp.*')
+
+# filters
+min_heavy_atoms = int(os.getenv("MIN_ATOMS", 2))
+max_heavy_atoms = int(os.getenv("MAX_ATOMS", 50))
 
 # sanitization reactions
 REACTIONS = [
@@ -14,17 +22,25 @@ REACTIONS = [
 for i, rxn in enumerate(REACTIONS):
     REACTIONS[i] = ReactionFromSmarts(rxn)
 
-in_file = DATA / "chembl_fetched.smi.gz"
+# files
+in_file = DATA / "chembl_30.sdf.gz"
 out_file = DATA / "chembl_processed.smi.gz"
 num_entries = int(open(DATA / ".fetched_count").read())
 
+# keep properties when pickling molecules
+Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.MolProps)
 
-def prepare_input(line):
-    smi, name = line[:-1].split(" ")
-    mol = Chem.MolFromSmiles(smi, sanitize=False)
+def prepare_input(mol):
+    if not mol:
+        return
+    name = mol.GetProp("chembl_id")
     # only keep largest fragment
     mol = max(Chem.GetMolFrags(mol, asMols=True), 
               key=lambda m: m.GetNumHeavyAtoms())
+    # filter by heavy atom count
+    count = mol.GetNumHeavyAtoms()
+    if count > max_heavy_atoms or count < min_heavy_atoms:
+        return
     # discard radicals
     if any(a.GetNumRadicalElectrons() for a in mol.GetAtoms()):
         return
@@ -41,11 +57,12 @@ def prepare_input(line):
 
 count = 0
 with mp.Pool(N_WORKERS) as pool, \
-     gzip.open(in_file, "rt") as fi, \
+     gzip.open(in_file, "r") as fi, \
      gzip.open(out_file, "wt") as fo:
 
-    for result in tqdm(pool.imap_unordered(prepare_input, fi),
-                       total=num_entries, desc="Cleaning molecules"):
+    suppl = Chem.ForwardSDMolSupplier(fi)
+    for result in tqdm(pool.imap_unordered(prepare_input, suppl),
+                       total=num_entries, desc="Processing molecules"):
         if result:
             fo.write(result)
             count += 1

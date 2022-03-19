@@ -42,9 +42,9 @@ $(fetch):
 
 $(process): $(fetch)
 	@$(SET_CONDA_ENV)
-	@export N_WORKERS=$(N_WORKERS)
-	python scripts/process_molecules.py || exit 1
-	bash scripts/drop_duplicates.sh
+	@export N_WORKERS=$(N_WORKERS) MIN_ATOMS=$(MIN_ATOMS) MAX_ATOMS=$(MAX_ATOMS)
+	@python scripts/process_molecules.py || exit 1
+	@bash scripts/drop_duplicates.sh
 
 $(benchmark): $(process)
 	@$(SET_CONDA_ENV)
