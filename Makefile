@@ -1,9 +1,9 @@
-GITHUB_USER ?= cbouy
-BRANCH ?= fix-converter
-CONDA ?= mamba
-N_WORKERS ?= -1
-MIN_ATOMS ?= 2
-MAX_ATOMS ?= 6
+GITHUB_USER ?= cbouy     # MDAnalysis fork to use
+BRANCH ?= fix-converter  # Branch of MDAnalysis to install
+CONDA ?= conda           # Use conda or mamba
+N_WORKERS ?= -1			 # Number of threads to use in parallel
+MIN_ATOMS ?= 2			 # Min number of heavy atoms for a molecule
+MAX_ATOMS ?= 50			 # Max number of heavy atoms for a molecule
 
 .ONESHELL:
 
@@ -22,19 +22,21 @@ help:
 	@echo 'usage: make <target>'
 	@echo
 	@echo 'targets:'
-	@echo '  help          Show this help'
-	@echo '  install       Install dependencies'
-	@echo '  fetch         Fetch ChEMBL molecules'
-	@echo '  process       Standardize and remove duplicate molecules'
-	@echo '  benchmark     Run the benchmark'
-	@echo '  report        Generate the report'
-	@echo '  clean         Clean all data'
-	@echo '  restart       Clean all data except the fetched ChEMBL dataset'
+	@echo '  help                      Show this help'
+	@echo '  install                   Install dependencies'
+	@echo '  fetch                     Fetch ChEMBL 30'
+	@echo '  process                   Filter, standardize and remove duplicate molecules'
+	@echo '  benchmark                 Run the benchmark'
+	@echo '  report                    Generate the report'
+	@echo '  clean                     Clean all data'
+	@echo '  restart                   Clean the benchmark data and report'
+	@echo
+	@echo 'default behavior: make fetch process benchmark report'
 
 install:
 	$(CONDA) env create -f environment.yaml
 	@$(SET_CONDA_ENV)
-	pip install git+https://github.com/$(GITHUB_USER)/mdanalysis.git@$(BRANCH)#subdirectory=package
+	@pip install git+https://github.com/$(GITHUB_USER)/mdanalysis.git@$(BRANCH)#subdirectory=package
 
 $(fetch):
 	@export CHEMBL_SDF=$(CHEMBL_SDF)
@@ -49,22 +51,23 @@ $(process): $(fetch)
 $(benchmark): $(process)
 	@$(SET_CONDA_ENV)
 	@export N_WORKERS=$(N_WORKERS)
-	python scripts/benchmark.py
+	@python scripts/benchmark.py
 
 $(report): $(benchmark)
 	@$(SET_CONDA_ENV)
 	@export N_WORKERS=$(N_WORKERS)
-	python scripts/report.py
-
-restart:
-	@rm -f $$(find data/ -name "*" -type f \
-			  | grep -v $(fetch) \
-			  | grep -v data/.fetched_count \
-			  | grep -v data/.timestamp)
-	@rm -rf results/
+	@python scripts/report.py
 
 clean:
 	@rm -rf data/ results/
+
+restart:
+	@rm -f data/chembl_failed.smi \
+		   data/.failed_count \
+		   data/.timing \
+		   data/.timestamp
+	@rm -rf results/
+
 
 .PHONY: fetch
 fetch: $(fetch)
