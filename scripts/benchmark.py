@@ -1,47 +1,46 @@
+import time
 import gzip
-from joblib import Parallel, delayed
+import multiprocessing as mp
 from tqdm.auto import tqdm
 from rdkit import Chem
-from utils import (datapath, timestamp, delimiter, add_Hs_remove_bo_and_charges, 
-                   enumerate_reordered_mol, assign_bond_orders_and_charges,
-                   is_isomorphic_or_resonance_structure)
+from utils import (ROOT, DATA, N_WORKERS,
+                   add_Hs_remove_bo_and_charges, enumerate_reordered_mol,
+                   assign_bond_orders_and_charges, same_molecules)
 
 
-mol_file = datapath / f"chembl_{timestamp}_prepared.rdkit.gz"
-out_file = datapath / f"chembl_{timestamp}_failed.smi"
-delimiter_len = len(delimiter)
-num_entries = int(open(datapath / f".molecules_count").read())
+in_file = DATA / "chembl_processed_unique.smi.gz"
+out_file = DATA / "chembl_failed.smi"
+num_entries = int(open(DATA / ".processed_unique_count").read()) 
 
-def mol_supplier(handle):
-    buffer = b""
-    for line in handle:
-        buffer += line
-        if line.endswith(delimiter):
-            yield Chem.Mol(buffer[:-delimiter_len])
-            buffer = b""    
 
-def validate_mol(mol):
-    stripped_mol = add_Hs_remove_bo_and_charges(mol)
-    for m in enumerate_reordered_mol(stripped_mol):
-        inferred = assign_bond_orders_and_charges(m)
-        inferred = Chem.RemoveHs(inferred)
-        iso = is_isomorphic_or_resonance_structure(inferred, mol)
-        if not iso:
-            return False, Chem.MolToSmiles(mol), mol.GetProp("_Name")
-    return True
+def validate_entry(smi):
+    ref = Chem.MolFromSmiles(smi)
+    stripped_mol = add_Hs_remove_bo_and_charges(ref)
+    for mol in enumerate_reordered_mol(stripped_mol):
+        mol = assign_bond_orders_and_charges(mol)
+        mol = Chem.RemoveHs(mol)
+        valid = same_molecules(mol, ref)
+        if not valid:
+            return smi
 
-with gzip.open(mol_file, "rb") as fi, \
+count = 0
+start = time.perf_counter()
+
+with mp.Pool(N_WORKERS) as pool, \
+     gzip.open(in_file, "rt") as fi, \
      open(out_file, "w") as fo:
 
-    count = 0
-    for mol in tqdm(mol_supplier(fi), total=num_entries):
-        passed = validate_mol(mol)
-        if not passed is True:
-            _, smi, name = passed
-            fo.write(f"{smi} {name}\n")
+    for result in tqdm(pool.imap_unordered(validate_entry, fi),
+                       total=num_entries, desc="Benchmarking"):
+        if result:
+            fo.write(result)
             count += 1
 
-print(f"Wrote '{out_file}' with {count:,} failed entries")
+stop = time.perf_counter()
+
+
+print(f"Wrote '{out_file.relative_to(ROOT)}' with {count:,} failed entries")
 acc = 100 * (num_entries - count) / num_entries
-print(f"Accuracy: {acc:.2f}%")
-(datapath / ".failures_count").write_text(str(count))
+print(f"Accuracy: {acc:.3f}%")
+(DATA / ".failed_count").write_text(str(count))
+(DATA / ".timing").write_text(str(stop - start))
