@@ -9,6 +9,7 @@ Requires conda (or mamba) on a Linux machine.
 Start by cloning this repository:
 ```shell
 git clone https://github.com/MDAnalysis/RDKitConverter-benchmark.git
+cd RDKitConverter-benchmark
 ```
 
 Then install the python dependencies with `make install`:
