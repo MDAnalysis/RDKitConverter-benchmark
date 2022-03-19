@@ -2,6 +2,7 @@ import json
 import shutil
 import pandas as pd
 import mols2grid
+from MDAnalysis import __version__ as mda_version
 from utils import ROOT, DATA, RESULTS, N_WORKERS
 
 
@@ -19,6 +20,7 @@ with open(DATA / ".fetched_count") as fi_fetched, \
     acc = 100 * (n_mols - n_fails) / n_mols
     results = {
         "Date": fi_timestamp.read(),
+        "MDAnalysis version": mda_version,
         "Accuracy (%)": acc,
         "Number of molecules fetched": int(fi_fetched.read()),
         "Number of molecules processed": n_mols,
@@ -29,7 +31,7 @@ with open(DATA / ".fetched_count") as fi_fetched, \
     json.dump(results, fo)
 
 # copy failures to results folder
-shutil.copy(DATA / "chembl_failed.smi", RESULTS / "chembl_failed.smi")
+shutil.copy(DATA / "chembl_failed.smi", RESULTS / "failed_molecules.smi")
 
 # generate grid of failed molecules
 in_file = DATA / "chembl_failed.smi"
