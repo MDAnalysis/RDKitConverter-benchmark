@@ -9,8 +9,9 @@ MAX_ATOMS ?= 6
 
 SHELL := /bin/bash
 SET_CONDA_ENV := source $$(conda info --base)/etc/profile.d/conda.sh && conda activate && conda activate rdkitconverter
+CHEMBL_SDF := ftp://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/releases/chembl_30/chembl_30.sdf.gz
 
-fetch := data/chembl_fetched.smi.gz
+fetch := data/chembl_30.sdf.gz
 process := data/chembl_processed_unique.smi.gz
 benchmark := data/chembl_failed.smi
 report := results/failed_molecules.html
@@ -36,9 +37,8 @@ install:
 	pip install git+https://github.com/$(GITHUB_USER)/mdanalysis.git@$(BRANCH)#subdirectory=package
 
 $(fetch):
-	@$(SET_CONDA_ENV)
-	export MIN_ATOMS=$(MIN_ATOMS) MAX_ATOMS=$(MAX_ATOMS)
-	python scripts/fetch_molecules.py
+	@export CHEMBL_SDF=$(CHEMBL_SDF)
+	@bash scripts/fetch_chembl.sh
 
 $(process): $(fetch)
 	@$(SET_CONDA_ENV)
