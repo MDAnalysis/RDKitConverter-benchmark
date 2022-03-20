@@ -25,6 +25,8 @@ def validate_entry(smi):
     stripped_mol = add_Hs_remove_bo_and_charges(ref)
     for mol in enumerate_reordered_mol(stripped_mol):
         mol = assign_bond_orders_and_charges(mol)
+        if not mol:
+            return smi
         mol = Chem.RemoveHs(mol)
         valid = same_molecules(mol, ref)
         if not valid:
