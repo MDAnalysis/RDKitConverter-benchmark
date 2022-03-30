@@ -23,6 +23,7 @@ zcat "${IN_FILE}" \
 # count
 zcat "${OUT_FILE}" | wc -l | tr -d '\n' > .processed_unique_count
 COUNT=$(cat .processed_unique_count)
-echo Wrote \'data/${OUT_FILE}\' with ${COUNT} unique entries
+python -c "print(f'Wrote \'data/${OUT_FILE}\' with {${COUNT}:,} unique entries')"
 
 cd - > /dev/null
+

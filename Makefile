@@ -1,9 +1,15 @@
-GITHUB_USER ?= cbouy     # MDAnalysis fork to use
-BRANCH ?= fix-converter  # Branch of MDAnalysis to install
-CONDA ?= conda           # Use conda or mamba
-N_WORKERS ?= -1			 # Number of threads to use in parallel
-MIN_ATOMS ?= 2			 # Min number of heavy atoms for a molecule
-MAX_ATOMS ?= 50			 # Max number of heavy atoms for a molecule
+# MDAnalysis fork to use
+GITHUB_USER ?= cbouy
+# Branch of MDAnalysis to install
+BRANCH ?= fix-converter
+# Use conda or mamba
+CONDA ?= conda
+# Number of threads to use in parallel
+N_WORKERS ?= -1
+# Min number of heavy atoms for a molecule
+MIN_ATOMS ?= 2
+# Max number of heavy atoms for a molecule	 
+MAX_ATOMS ?= 50
 
 .ONESHELL:
 

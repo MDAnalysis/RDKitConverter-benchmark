@@ -69,7 +69,10 @@ def enumerate_reordered_mol(mol):
 def assign_bond_orders_and_charges(mol):
     """Returns a sanitized molecule with infered bond orders and charges"""
     _infer_bo_and_charges(mol)
-    mol = _standardize_patterns(mol)
+    try:
+        mol = _standardize_patterns(mol)
+    except Chem.AtomValenceException:
+        return None
     Chem.SanitizeMol(mol)
     return mol
 
