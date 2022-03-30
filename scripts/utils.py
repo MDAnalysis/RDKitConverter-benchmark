@@ -19,6 +19,7 @@ timestamp = datetime.now().strftime("%Y-%m-%d")
 
 
 def apply_reaction(rxn, mol):
+    """Adapted from MDAnalysis.converters.RDKit._run_reaction"""
     for _ in range(mol.GetNumAtoms()):
         mol.UpdatePropertyCache(strict=False)
         Chem.Kekulize(mol)
@@ -68,12 +69,12 @@ def enumerate_reordered_mol(mol):
 
 def assign_bond_orders_and_charges(mol):
     """Returns a sanitized molecule with infered bond orders and charges"""
-    _infer_bo_and_charges(mol)
     try:
+        _infer_bo_and_charges(mol)
         mol = _standardize_patterns(mol)
-    except Chem.AtomValenceException:
+        Chem.SanitizeMol(mol)
+    except Exception as e:
         return None
-    Chem.SanitizeMol(mol)
     return mol
 
 
