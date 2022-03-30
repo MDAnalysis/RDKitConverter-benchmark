@@ -39,7 +39,7 @@ The benchmark will fetch ChEMBL 30 as an SDF file and process the molecules the 
 - Discard molecules with radicals
 - Drop duplicate molecules based on their InchiKey
 
-Once the data is fetched and standardized, the benchmark can be run. The benchmark will start by preparing a "reduced" version of the molecule by removing bond orders and formal charges. This is done to mimic the minimal information available in most topology files for MD simulations.
+Once the data is fetched and standardized, the benchmark can be run. The benchmark will start by preparing a "reduced" version of the molecule by adding explicit hydrogen atoms and removing bond orders and formal charges. This is done to mimic the minimal information available in most topology files for MD simulations.
 
 The RDKitConverter might give different results depending on the order of atoms in the molecule. For that reason, the benchmark will enumerate reordered version of the molecule so that each atom appears in the first position once.  
 This is done by reading a SMILES of the molecule rooted at the given atom, so that the other atoms of the molecule are reordered in a realistic way.
