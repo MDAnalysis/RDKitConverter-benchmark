@@ -2,9 +2,17 @@
 
 This repository benchmarks the ability of MDAnalysis' `RDKitConverter` to infer bond orders and charges from molecules with all hydrogens explicit.
 
+## Results
+
+![99.15% accuracy](https://img.shields.io/badge/accuracy-99.15%25-success)
+
+**13,117 out of 1,538,768** ChEMBL molecules failed to be inferred properly.
+
+The **interactive list of molecules** currently failing can be accessed [here](https://raw.githack.com/MDAnalysis/RDKitConverter-benchmark/first_run/results/failed_molecules.html) (click on a molecule's image to zoom in).
+
 ## Instructions
 
-Requires conda (or mamba) on a Linux machine.
+Running the benchmark requires conda (or mamba) on a Linux machine.
 
 Start by cloning this repository:
 ```shell
