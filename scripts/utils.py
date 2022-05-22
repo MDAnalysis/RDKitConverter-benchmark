@@ -73,7 +73,7 @@ def assign_bond_orders_and_charges(mol):
         _infer_bo_and_charges(mol)
         mol = _standardize_patterns(mol)
         Chem.SanitizeMol(mol)
-    except Exception as e:
+    except:
         return None
     return mol
 
