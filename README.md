@@ -2,9 +2,17 @@
 
 This repository benchmarks the ability of MDAnalysis' `RDKitConverter` to infer bond orders and charges from molecules with all hydrogens explicit.
 
+## Results
+
+![current accuracy](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FMDAnalysis%2FRDKitConverter-benchmark%2Fmain%2Fresults%2Fbadge.json)
+
+Details on the benchmark can be found [here](results/results.json).
+
+The **interactive list of molecules** currently failing can be accessed [here](https://raw.githack.com/MDAnalysis/RDKitConverter-benchmark/main/results/failed_molecules.html) (click on a molecule's image to zoom in).
+
 ## Instructions
 
-Requires conda (or mamba) on a Linux machine.
+Running the benchmark requires conda (or mamba) on a Linux machine.
 
 Start by cloning this repository:
 ```shell

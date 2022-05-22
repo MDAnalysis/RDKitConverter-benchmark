@@ -28,7 +28,7 @@ with open(DATA / ".fetched_count") as fi_fetched, \
         "Timing (s)": float(fi_timing.read()),
         "Number of threads": N_WORKERS,
     }
-    json.dump(results, fo)
+    json.dump(results, fo, indent=4)
 
 # copy failures to results folder
 shutil.copy(DATA / "chembl_failed.smi", RESULTS / "failed_molecules.smi")
@@ -41,7 +41,7 @@ callback = mols2grid.make_popup_callback(
     title="${data['ChEMBL-id']}",
     js="""
         var mol = RDKitModule.get_mol(data["SMILES"]);
-        var svg = mol.get_svg(600, 600);
+        var svg = mol.get_svg(600, 500);
         mol.delete();
     """,
     html="""
@@ -58,5 +58,15 @@ mols2grid.save(
     clearBackground=False,
     callback=callback,
 )
+
+# generate badge
+with open(RESULTS / "badge.json", "w") as f:
+    badge = {
+        "schemaVersion": 1,
+        "label": "accuracy",
+        "message": f"{acc:.2f}%",
+        "color": "success"
+    }
+    json.dump(badge, f)
 
 print(f"Wrote reports in {RESULTS.relative_to(ROOT)}")
