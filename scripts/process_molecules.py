@@ -51,6 +51,10 @@ def prepare_input(mol):
     if err:
         return
     smi = Chem.MolToSmiles(mol)
+    # roundtrip mol to smiles to mol
+    roundtrip = Chem.MolFromSmiles(smi)
+    if not roundtrip:
+        return
     inchikey = Chem.MolToInchiKey(mol)
     return f"{smi} {name} {inchikey}\n"
 
