@@ -18,27 +18,15 @@ timestamp = datetime.now().strftime("%Y-%m-%d")
 
 
 def apply_reaction(rxn, mol):
-    """Adapted from MDAnalysis.converters.RDKit._run_reaction"""
-    for _ in range(mol.GetNumAtoms()):
-        mol.UpdatePropertyCache(strict=False)
-        Chem.Kekulize(mol)
-        products = rxn.RunReactants((mol,))
-        if products:
-            # structure: tuple[tuple[mol]]
-            # length of 1st tuple: number of matches in reactant
-            # length of 2nd tuple: number of products yielded by the reaction
-            # if there's no match in reactant, returns an empty tuple
-            # here we have at least one match, and the reaction used yield
-            # a single product hence `products[0][0]`
-            product = products[0][0]
-            # apply the next reaction to the product
-            mol = product
-        # exit the loop if there was nothing to transform
-        else:
-            break
+    """Applies a unimolecular reaction inplace. Adapted from
+    ``MDAnalysis.converters.RDKit._apply_reactions``.
+    """
     mol.UpdatePropertyCache(strict=False)
     Chem.Kekulize(mol)
-    return mol
+    while rxn.RunReactantInPlace(mol):
+        mol.UpdatePropertyCache(strict=False)
+    mol.UpdatePropertyCache(strict=False)
+    Chem.Kekulize(mol)
 
 
 def add_Hs_remove_bo_and_charges(mol):
