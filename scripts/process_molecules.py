@@ -23,7 +23,7 @@ for i, rxn in enumerate(REACTIONS):
     REACTIONS[i] = ReactionFromSmarts(rxn)
 
 # files
-in_file = DATA / "chembl_30.sdf.gz"
+in_file = DATA / "chembl_33.sdf.gz"
 out_file = DATA / "chembl_processed.smi.gz"
 num_entries = int(open(DATA / ".fetched_count").read())
 

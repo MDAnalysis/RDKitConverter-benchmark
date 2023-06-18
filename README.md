@@ -53,7 +53,7 @@ The results are available in the `results/` directory:
 
 ## Methods
 
-The benchmark will fetch ChEMBL 30 as an SDF file and process the molecules the following way:
+The benchmark will fetch ChEMBL 33 as an SDF file and process the molecules the following way:
 - Discard molecules that could not be read or sanitized by RDKit
 - Keep only the largest fragment
 - Keep only molecules with 2 to 50 heavy atoms
