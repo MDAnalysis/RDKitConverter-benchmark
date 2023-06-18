@@ -1,20 +1,23 @@
 import json
 import shutil
-import pandas as pd
+
 import mols2grid
+import pandas as pd
 from MDAnalysis import __version__ as mda_version
-from utils import ROOT, DATA, RESULTS, N_WORKERS
+from utils import DATA, RESULTS, ROOT
 
-
+print("Making reports")
 RESULTS.mkdir(parents=True, exist_ok=True)
 
-with open(DATA / ".fetched_count") as fi_fetched, \
-     open(DATA / ".processed_unique_count") as fi_processed, \
-     open(DATA / ".failed_count") as fi_failed, \
-     open(DATA / ".timestamp") as fi_timestamp, \
-     open(DATA / ".timing") as fi_timing, \
-     open(RESULTS / "results.json", "w") as fo:
-
+with open(DATA / ".fetched_count") as fi_fetched, open(
+    DATA / ".processed_unique_count"
+) as fi_processed, open(DATA / ".failed_count") as fi_failed, open(
+    DATA / ".timestamp"
+) as fi_timestamp, open(
+    DATA / ".timing"
+) as fi_timing, open(
+    RESULTS / "results.json", "w"
+) as fo:
     n_mols = int(fi_processed.read())
     n_fails = int(fi_failed.read())
     acc = 100 * (n_mols - n_fails) / n_mols
@@ -26,7 +29,6 @@ with open(DATA / ".fetched_count") as fi_fetched, \
         "Number of molecules processed": n_mols,
         "Number of molecules failed": n_fails,
         "Timing (s)": float(fi_timing.read()),
-        "Number of threads": N_WORKERS,
     }
     json.dump(results, fo, indent=4)
 
@@ -48,13 +50,18 @@ callback = mols2grid.make_popup_callback(
         <div>${svg}</div>
         <p>${data['SMILES']}</p>
     """,
-    style="max-width: 80%;",
+    style="max-width: 620px;",
 )
 
 mols2grid.save(
-    df, output=RESULTS / "failed_molecules.html",
+    df,
+    size=(200, 160),
+    n_rows=5,
+    n_cols=8,
+    output=RESULTS / "failed_molecules.html",
     subset=["ChEMBL id", "img"],
-    tooltip=["SMILES"], tooltip_trigger="hover",
+    tooltip=["SMILES"],
+    tooltip_trigger="hover",
     clearBackground=False,
     callback=callback,
 )
@@ -65,7 +72,7 @@ with open(RESULTS / "badge.json", "w") as f:
         "schemaVersion": 1,
         "label": "accuracy",
         "message": f"{acc:.2f}%",
-        "color": "success"
+        "color": "success",
     }
     json.dump(badge, f)
 

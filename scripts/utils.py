@@ -1,11 +1,10 @@
 import os
 from datetime import datetime
-from pathlib import Path
 from multiprocessing import cpu_count
-from rdkit import Chem
-from MDAnalysis.converters.RDKit import (_infer_bo_and_charges,
-                                         _standardize_patterns)
+from pathlib import Path
 
+from MDAnalysis.converters.RDKit import _infer_bo_and_charges, _standardize_patterns
+from rdkit import Chem
 
 N_WORKERS = int(os.getenv("N_WORKERS", -1))
 if N_WORKERS < 0:
@@ -82,6 +81,7 @@ def same_molecules(mol, ref):
     """Checks if 2 molecules are the same, using their resonance structures"""
     same = mol.HasSubstructMatch(ref)
     if not same:
-        same = bool(Chem.ResonanceMolSupplier(mol, maxStructs=50)
-                    .GetSubstructMatch(ref))
+        same = bool(
+            Chem.ResonanceMolSupplier(mol, maxStructs=50).GetSubstructMatch(ref)
+        )
     return same

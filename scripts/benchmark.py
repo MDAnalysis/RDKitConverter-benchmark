@@ -1,22 +1,29 @@
-import time
 import gzip
-import warnings
 import multiprocessing as mp
-from tqdm.auto import tqdm
-from rdkit import Chem, RDLogger
-from utils import (ROOT, DATA, N_WORKERS, timestamp,
-                   add_Hs_remove_bo_and_charges, enumerate_reordered_mol,
-                   assign_bond_orders_and_charges, same_molecules)
+import time
+import warnings
 
+from rdkit import Chem, RDLogger
+from tqdm.auto import tqdm
+from utils import (
+    DATA,
+    N_WORKERS,
+    ROOT,
+    add_Hs_remove_bo_and_charges,
+    assign_bond_orders_and_charges,
+    enumerate_reordered_mol,
+    same_molecules,
+    timestamp,
+)
 
 # ignore warnings and errors
 warnings.filterwarnings("ignore")
-RDLogger.DisableLog('rdApp.*')
+RDLogger.DisableLog("rdApp.*")
 
 # files
 in_file = DATA / "chembl_processed_unique.smi.gz"
 out_file = DATA / "chembl_failed.smi"
-num_entries = int(open(DATA / ".processed_unique_count").read()) 
+num_entries = int(open(DATA / ".processed_unique_count").read())
 (DATA / ".timestamp").write_text(timestamp)
 
 
@@ -32,14 +39,13 @@ def validate_entry(smi):
         if not valid:
             return smi
 
+
 print("Starting benchmark")
 count = 0
 start = time.perf_counter()
-with mp.Pool(N_WORKERS) as pool, \
-     gzip.open(in_file, "rt") as fi, \
-     open(out_file, "w") as fo, \
-     tqdm(total=num_entries) as pbar:
-
+with mp.Pool(N_WORKERS) as pool, gzip.open(in_file, "rt") as fi, open(
+    out_file, "w", buffering=1
+) as fo, tqdm(total=num_entries) as pbar:
     for i, result in enumerate(pool.imap_unordered(validate_entry, fi)):
         if result:
             fo.write(result)
