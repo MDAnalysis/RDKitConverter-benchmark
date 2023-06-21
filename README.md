@@ -12,11 +12,11 @@ To cite this repository, please use the following DOI:
 
 | Description | Value |
 | --- | --- |
-| **MDAnalysis version** | 2.2.0-dev0 |
-| **Accuracy** | 99.14% |
-| **Number of molecules fetched** | 2,136,187 |
-| **Number of molecules processed** | 1,942,004 |
-| **Number of molecules failed** | 16,615 |
+| **MDAnalysis version** | 2.4.3 |
+| **Accuracy** | 99.19% |
+| **Number of molecules fetched** | 2,372,174 |
+| **Number of molecules processed** | 2,166,327 |
+| **Number of molecules failed** | 17,577 |
 
 Details on the benchmark can also be found [here](results/results.json).
 

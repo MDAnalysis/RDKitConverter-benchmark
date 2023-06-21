@@ -1,10 +1,9 @@
 {
-    "Date": "2022-05-11",
-    "MDAnalysis version": "2.2.0-dev0",
-    "Accuracy (%)": 99.14444048518952,
-    "Number of molecules fetched": 2136187,
-    "Number of molecules processed": 1942004,
-    "Number of molecules failed": 16615,
-    "Timing (s)": "NaN",
-    "Number of threads": 22
+    "Date": "2023-06-18",
+    "MDAnalysis version": "2.4.3",
+    "Accuracy (%)": 99.18862664777755,
+    "Number of molecules fetched": 2372674,
+    "Number of molecules processed": 2166327,
+    "Number of molecules failed": 17577,
+    "Timing (s)": 259200.0
 }
