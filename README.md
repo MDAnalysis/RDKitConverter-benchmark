@@ -22,6 +22,8 @@ Details on the benchmark can also be found [here](results/results.json).
 
 The **interactive list of molecules** currently failing can be accessed [here](https://raw.githack.com/MDAnalysis/RDKitConverter-benchmark/main/results/failed_molecules.html) (click on a molecule's image to zoom in).
 
+Failing scaffolds can be accessed [here](https://raw.githack.com/MDAnalysis/RDKitConverter-benchmark/main/results/failed_scaffolds.html).
+
 ## Instructions
 
 Running the benchmark requires conda (or mamba) on a Linux machine.
