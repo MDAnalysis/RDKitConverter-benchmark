@@ -22,7 +22,8 @@ Details on the benchmark can also be found [here](results/results.json).
 
 The **interactive list of molecules** currently failing can be accessed [here](https://raw.githack.com/MDAnalysis/RDKitConverter-benchmark/main/results/failed_molecules.html) (click on a molecule's image to zoom in).
 
-Failing scaffolds can be accessed [here](https://raw.githack.com/MDAnalysis/RDKitConverter-benchmark/main/results/failed_scaffolds.html).
+Failing **scaffolds** can be accessed [here](https://raw.githack.com/MDAnalysis/RDKitConverter-benchmark/main/results/failed_scaffolds.html). The scaffold network used to
+create this file can be viewed [here](https://raw.githack.com/MDAnalysis/RDKitConverter-benchmark/main/results/scaffold_network.html).
 
 ## Instructions
 
