@@ -1,9 +1,7 @@
 import lzma
 import multiprocessing as mp
 import pickle
-from base64 import b64encode
 from dataclasses import asdict, dataclass
-from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Optional, Sequence, Type, TypeVar
 
@@ -13,9 +11,11 @@ import numpy as np
 import pandas as pd
 import scaffoldgraph as sg
 from benchmark import validate_inferring
-from bokeh.io import output_file, output_notebook, save, show
+from bokeh.io import output_file, save
 from bokeh.models import (
     Circle,
+    CustomJSHover,
+    HoverTool,
     MultiLine,
     NodesAndAdjacentNodes,
     NodesAndLinkedEdges,
@@ -27,6 +27,33 @@ from rdkit import Chem
 from rdkit.Chem import Draw
 from tqdm.auto import tqdm
 from utils import N_WORKERS, RESULTS
+
+template = """
+{% block postamble %}
+    <script src="https://unpkg.com/@rdkit/rdkit@2023.3.2-1.0.0/Code/MinimalLib/dist/RDKit_minimal.js"></script>
+    <script>
+        window
+            .initRDKitModule()
+            .then(function (RDKit) {
+                window.RDKit = RDKit;
+                console.log("RDKit version: " + RDKit.version());
+            });
+    </script>
+{% endblock %}"""
+
+js_mol_from_smiles = """
+const smiles = value;
+const mol = RDKit.get_mol(smiles);
+let svg = "";
+if (mol.is_valid()) {
+    svg = mol.get_svg(%(width)d, %(height)d);
+}
+mol.delete();
+if (svg == "") {
+    svg = '<svg width="%(width)d" height="%(height)d" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 %(width)d %(height)d"></svg>';
+}
+return svg;
+"""
 
 
 @dataclass()
@@ -73,7 +100,6 @@ class Network:
     kind: Type[ScaffoldNetworkT]
     scaffold_options: ScaffoldOptions
     scaffold_network: ScaffoldNetworkT = None
-    use_svg: bool = True
     img_size: tuple[int, int] = (160, 120)
     draw_options: Draw.MolDrawOptions = Draw.MolDrawOptions()
 
@@ -86,23 +112,7 @@ class Network:
         self.scaffold_network = graph
 
     @staticmethod
-    def draw_svg(mol, img_size: tuple[int, int]) -> str:
-        d2d = Draw.MolDraw2DSVG(*img_size)
-        d2d.DrawMolecule(mol)
-        d2d.FinishDrawing()
-        return d2d.GetDrawingText().replace("\n", "")
-
-    @staticmethod
-    def draw_png(mol, img_size: tuple[int, int]) -> str:
-        d2d = Draw.MolDraw2DCairo(*img_size)
-        d2d.DrawMolecule(mol)
-        d2d.FinishDrawing()
-        png = d2d.GetDrawingText()
-        return b64encode(png).decode("utf-8")
-
-    @staticmethod
-    def _additional_data(args) -> tuple[str, dict]:
-        smiles, get_img = args
+    def _additional_data(smiles) -> tuple[str, dict]:
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
             print(f"Something wrong with: {smiles}")
@@ -110,24 +120,19 @@ class Network:
                 "smiles": smiles,
                 "heavy_atom_count": 0,
                 "status": "fail",
-                "mol_img": get_img(Chem.MolFromSmiles("")),
             }
         return smiles, {
             "smiles": smiles,
             "heavy_atom_count": mol.GetNumHeavyAtoms(),
             "status": "pass" if validate_inferring(mol) else "fail",
-            "mol_img": get_img(mol),
         }
 
     def add_data(self) -> None:
         graph = self.scaffold_network
         added = {}
-        img_func = self.draw_svg if self.use_svg else self.draw_png
-        get_img = partial(img_func, img_size=self.img_size)
-        arguments = ((smiles, get_img) for smiles in graph.get_scaffold_nodes())
         with mp.Pool(N_WORKERS) as pool:
             for idx, data in tqdm(
-                pool.imap_unordered(self._additional_data, arguments),
+                pool.imap_unordered(self._additional_data, graph.get_scaffold_nodes()),
                 total=graph.num_scaffold_nodes,
                 desc="Calculating additional data",
             ):
@@ -198,7 +203,7 @@ class Network:
         layout_kwargs: dict = {},
         title: str = "Scaffold Network",
         filename: Optional[str] = None,
-        size: tuple[int, int] = (1000, 600),
+        size: tuple[int, int] = (800, 400),
         palette: dict[str, str] = {
             "pass": "#4393C3",
             "fail": "#D6604D",
@@ -207,24 +212,13 @@ class Network:
         size_by: str = "mol_count",
         size_bins: Any = "auto",
         size_scale: float = 2,
-        node_alpha: float = 0.8,
-        edge_alpha: float = 0.3,
-        edge_width: float = 1,
+        node_alpha: float = 0.7,
+        edge_alpha: float = 0,
+        edge_width: float = 0,
     ) -> None:
         """Interactive bokeh plot of the network"""
-        img_tooltip = (
-            "@mol_img{safe}"
-            if self.use_svg
-            else '<img src="data:image/png;base64,@mol_img{safe}">'
-        )
-        hover_tooltip = f"""<div style="font-size: 14px; position: relative;">
-        <div style="left=0">{img_tooltip}</div>
-        <div><span style="font-weight: bold;">@mol_count</span>
-        <span style="font-size: 10px;">@smiles</span>
-        </div></div>"""
 
         plot = figure(
-            tooltips=hover_tooltip,
             tools="pan,tap,wheel_zoom,save,reset",
             active_scroll="wheel_zoom",
             x_axis_location=None,
@@ -232,6 +226,30 @@ class Network:
             title=title,
             width=size[0],
             height=size[1],
+            sizing_mode="scale_both",
+        )
+        max_width = f"{self.img_size[0] + 5}px"
+        hover_tooltip = (
+            """<div style="font-size: 14px; max-width: %s">
+        <div style="position: relative; left=0">@smiles{custom}</div>
+        <div style="position: relative;">
+        <span style="position: relative; font-weight: bold;">@mol_count</span>
+        <span style="font-size: 10px; word-wrap: break-word;">@smiles</span>
+        </div>
+        </div>"""
+            % max_width
+        )
+
+        plot.add_tools(
+            HoverTool(
+                tooltips=hover_tooltip,
+                formatters={
+                    "@smiles": CustomJSHover(
+                        code=js_mol_from_smiles
+                        % {"width": self.img_size[0], "height": self.img_size[1]}
+                    )
+                },
+            )
         )
         plot.grid.grid_line_color = None
         graph = self.scaffold_network
@@ -245,10 +263,10 @@ class Network:
         _, bins = np.histogram(values, bins=size_bins)
         assignments = np.digitize(values, bins, right=True).astype(float)
         # adjust sizes
-        min_node_size = 3
-        assignments[indices[-1]] += min_node_size  # benzene slightly larger
+        min_node_size = 4
         assignments *= size_scale
-        assignments[assignments == 0] = min_node_size
+        assignments += min_node_size
+        assignments[indices[-1]] += min_node_size  # benzene slightly larger
         size = {idx: s for idx, s in zip(graph.nodes, assignments)}
         nx.set_node_attributes(graph, size, "node_size")
 
@@ -270,7 +288,7 @@ class Network:
             size="node_size", fill_color=cmap, line_width=0, fill_alpha=node_alpha
         )
         node_interaction_glyph = Circle(
-            size="node_size", fill_color=cmap, line_width=2, line_color="#000000"
+            size="node_size", fill_color=cmap, line_width=0, line_color="#000000"
         )
         graph_model.node_renderer.selection_glyph = node_interaction_glyph
         graph_model.node_renderer.hover_glyph = node_interaction_glyph
@@ -287,39 +305,35 @@ class Network:
         graph_model.selection_policy = NodesAndAdjacentNodes()
         graph_model.inspection_policy = NodesAndLinkedEdges()
 
-        if filename:
-            output_file(filename=filename, title=title)
-            save(plot, filename=filename)
-        else:
-            output_notebook()
-            show(plot)
+        output_file(filename=filename, title=title)
+        save(plot, filename=filename, template=template)
 
 
 if __name__ == "__main__":
     suppl = Chem.SmilesMolSupplier(str(RESULTS / "failed_molecules.smi"))
     scaffold_options = ScaffoldOptions()
     # HierS kind to avoid splitting fused rings
-    net = Network(kind=sg.HierS, scaffold_options=scaffold_options, use_svg=False)
+    net = Network(kind=sg.HierS, scaffold_options=scaffold_options)
     net.generate_network(suppl, RESULTS / "scaffold_networkx.pkl.xz", overwrite=False)
     net.extract_failures(str(RESULTS / "failed_scaffolds.smi"))
-    df = pd.read_csv(
-        str(RESULTS / "failed_scaffolds.smi"),
-        names=["SMILES", "idx", "mol count"],
-        sep=" ",
-    )
-    mols2grid.save(
-        df,
-        subset=["idx", "img"],
-        tooltip=["mol count", "SMILES"],
-        size=(200, 160),
-        n_rows=5,
-        n_cols=8,
-        sort_by="mol count",
-        transform={"mol count": lambda x: -x},
-        output=str(RESULTS / "failed_scaffolds.html"),
-        tooltip_trigger="hover",
-        clearBackground=False,
-    )
+    # df = pd.read_csv(
+    #     str(RESULTS / "failed_scaffolds.smi"),
+    #     names=["SMILES", "idx", "mol count"],
+    #     sep=" ",
+    # )
+    # mols2grid.save(
+    #     df,
+    #     subset=["idx", "img"],
+    #     tooltip=["mol count", "SMILES"],
+    #     size=(200, 160),
+    #     n_rows=5,
+    #     n_cols=8,
+    #     sort_by="mol count",
+    #     transform={"mol count": lambda x: -x},
+    #     output=str(RESULTS / "failed_scaffolds.html"),
+    #     tooltip_trigger="hover",
+    #     clearBackground=False,
+    # )
     print("Generating layout and interactive plot")
     net.plot(
         filename=str(RESULTS / "scaffold_network.html"),
@@ -327,3 +341,14 @@ if __name__ == "__main__":
         layout_kwargs={"prog": "sfdp"},
         size_bins="doane",
     )
+    # TODO
+    """
+    - extract failing linkers:
+      for all scaffolds, compute ECFP6, and for each key in FP, if ALL scaffolds that
+      have it fail -> extract SMILES corresponding to key, and remove substruct matches
+      in failed_scaffolds.smi
+    - extract failing decorations:
+      inverse step of scaffold network: get all non-scaffold fragments, validate them,
+      establish parent-child network (substruct library for quicker search?) and do the
+      same as above.
+    """
