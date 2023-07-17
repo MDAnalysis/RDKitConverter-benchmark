@@ -16,6 +16,7 @@ from bokeh.models import (
     Circle,
     CustomJSHover,
     HoverTool,
+    Legend,
     MultiLine,
     NodesAndAdjacentNodes,
     NodesAndLinkedEdges,
@@ -28,7 +29,7 @@ from rdkit.Chem import Draw
 from tqdm.auto import tqdm
 from utils import N_WORKERS, RESULTS
 
-template = """
+bokeh_template = """
 {% block postamble %}
     <script src="https://unpkg.com/@rdkit/rdkit@2023.3.2-1.0.0/Code/MinimalLib/dist/RDKit_minimal.js"></script>
     <script>
@@ -179,16 +180,17 @@ class Network:
         failing = [
             idx for idx, data in graph.nodes(data=True) if data["status"] == "fail"
         ]
-        highlight = set(failing)
+        root = set(failing)
         for failed_idx in failing:
             for _, data in graph.get_parent_scaffolds(failed_idx, data=True):
                 if data["status"] == "fail":
-                    highlight.discard(failed_idx)
-        values = {idx: "highlight" for idx in highlight}
+                    root.discard(failed_idx)
+                    break
+        values = {idx: "root" for idx in root}
         nx.set_node_attributes(graph, values, "status")
         with open(smiles_output, "w") as fh:
             fmt_str = "{smiles} {idx} {count}\n"
-            for idx in highlight:
+            for idx in root:
                 data = graph.nodes[idx]
                 fh.write(
                     fmt_str.format(
@@ -207,12 +209,12 @@ class Network:
         palette: dict[str, str] = {
             "pass": "#4393C3",
             "fail": "#D6604D",
-            "highlight": "#FA9C4A",
+            "root": "#FA9C4A",
         },
         size_by: str = "mol_count",
         size_bins: Any = "auto",
         size_scale: float = 2,
-        node_alpha: float = 0.7,
+        node_alpha: float = 0.6,
         edge_alpha: float = 0,
         edge_width: float = 0,
     ) -> None:
@@ -305,8 +307,17 @@ class Network:
         graph_model.selection_policy = NodesAndAdjacentNodes()
         graph_model.inspection_policy = NodesAndLinkedEdges()
 
+        legend = Legend(
+            title="Status",
+            items=[
+                (key, [plot.circle(fill_color=color, line_width=0)])
+                for key, color in palette.items()
+            ],
+        )
+        plot.add_layout(legend)
+
         output_file(filename=filename, title=title)
-        save(plot, filename=filename, template=template)
+        save(plot, filename=filename, template=bokeh_template)
 
 
 if __name__ == "__main__":
@@ -316,24 +327,23 @@ if __name__ == "__main__":
     net = Network(kind=sg.HierS, scaffold_options=scaffold_options)
     net.generate_network(suppl, RESULTS / "scaffold_networkx.pkl.xz", overwrite=False)
     net.extract_failures(str(RESULTS / "failed_scaffolds.smi"))
-    # df = pd.read_csv(
-    #     str(RESULTS / "failed_scaffolds.smi"),
-    #     names=["SMILES", "idx", "mol count"],
-    #     sep=" ",
-    # )
-    # mols2grid.save(
-    #     df,
-    #     subset=["idx", "img"],
-    #     tooltip=["mol count", "SMILES"],
-    #     size=(200, 160),
-    #     n_rows=5,
-    #     n_cols=8,
-    #     sort_by="mol count",
-    #     transform={"mol count": lambda x: -x},
-    #     output=str(RESULTS / "failed_scaffolds.html"),
-    #     tooltip_trigger="hover",
-    #     clearBackground=False,
-    # )
+    df = pd.read_csv(
+        str(RESULTS / "failed_scaffolds.smi"),
+        names=["SMILES", "idx", "mol count"],
+        sep=" ",
+    )
+    mols2grid.save(
+        df,
+        subset=["idx", "img"],
+        tooltip=["mol count", "SMILES"],
+        size=(200, 160),
+        n_rows=5,
+        n_cols=8,
+        sort_by="mol count",
+        transform={"mol count": lambda x: -x},
+        output=str(RESULTS / "failed_scaffolds.html"),
+        clearBackground=False,
+    )
     print("Generating layout and interactive plot")
     net.plot(
         filename=str(RESULTS / "scaffold_network.html"),
@@ -341,14 +351,3 @@ if __name__ == "__main__":
         layout_kwargs={"prog": "sfdp"},
         size_bins="doane",
     )
-    # TODO
-    """
-    - extract failing linkers:
-      for all scaffolds, compute ECFP6, and for each key in FP, if ALL scaffolds that
-      have it fail -> extract SMILES corresponding to key, and remove substruct matches
-      in failed_scaffolds.smi
-    - extract failing decorations:
-      inverse step of scaffold network: get all non-scaffold fragments, validate them,
-      establish parent-child network (substruct library for quicker search?) and do the
-      same as above.
-    """
