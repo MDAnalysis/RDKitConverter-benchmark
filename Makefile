@@ -1,7 +1,5 @@
 # MDAnalysis fork to use
-GITHUB_USER ?= cbouy
-# Branch of MDAnalysis to install
-BRANCH ?= fix-converter
+MDA_VERSION ?= 2.4.3
 # Use conda or mamba
 CONDA ?= conda
 # Number of threads to use in parallel
@@ -15,9 +13,9 @@ MAX_ATOMS ?= 50
 
 SHELL := /bin/bash
 SET_CONDA_ENV := source $$(conda info --base)/etc/profile.d/conda.sh && conda activate && conda activate rdkitconverter
-CHEMBL_SDF := ftp://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/releases/chembl_30/chembl_30.sdf.gz
+CHEMBL_SDF := ftp://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/releases/chembl_33/chembl_33.sdf.gz
 
-fetch := data/chembl_30.sdf.gz
+fetch := data/chembl_33.sdf.gz
 process := data/chembl_processed_unique.smi.gz
 benchmark := data/chembl_failed.smi
 report := results/failed_molecules.html
@@ -30,7 +28,7 @@ help:
 	@echo 'targets:'
 	@echo '  help                      Show this help'
 	@echo '  install                   Install dependencies'
-	@echo '  fetch                     Fetch ChEMBL 30'
+	@echo '  fetch                     Fetch ChEMBL 33'
 	@echo '  process                   Filter, standardize and remove duplicate molecules'
 	@echo '  benchmark                 Run the benchmark'
 	@echo '  report                    Generate the report'
@@ -42,7 +40,7 @@ help:
 install:
 	$(CONDA) env create -f environment.yaml
 	@$(SET_CONDA_ENV)
-	@pip install git+https://github.com/$(GITHUB_USER)/mdanalysis.git@$(BRANCH)#subdirectory=package
+	@$(CONDA) install 'mdanalysis==$(MDA_VERSION)'
 
 $(fetch):
 	@export CHEMBL_SDF=$(CHEMBL_SDF)
