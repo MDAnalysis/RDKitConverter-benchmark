@@ -12,15 +12,18 @@ To cite this repository, please use the following DOI:
 
 | Description | Value |
 | --- | --- |
-| **MDAnalysis version** | 2.2.0-dev0 |
-| **Accuracy** | 99.14% |
-| **Number of molecules fetched** | 2,136,187 |
-| **Number of molecules processed** | 1,942,004 |
-| **Number of molecules failed** | 16,615 |
+| **MDAnalysis version** | 2.4.3 |
+| **Accuracy** | 99.19% |
+| **Number of molecules fetched** | 2,372,174 |
+| **Number of molecules processed** | 2,166,327 |
+| **Number of molecules failed** | 17,577 |
 
 Details on the benchmark can also be found [here](results/results.json).
 
 The **interactive list of molecules** currently failing can be accessed [here](https://raw.githack.com/MDAnalysis/RDKitConverter-benchmark/main/results/failed_molecules.html) (click on a molecule's image to zoom in).
+
+Failing **scaffolds** can be accessed [here](https://raw.githack.com/MDAnalysis/RDKitConverter-benchmark/main/results/failed_scaffolds.html). The scaffold network used to
+create this file can be viewed [here](https://raw.githack.com/MDAnalysis/RDKitConverter-benchmark/main/results/scaffold_network.html).
 
 ## Instructions
 
@@ -53,7 +56,7 @@ The results are available in the `results/` directory:
 
 ## Methods
 
-The benchmark will fetch ChEMBL 30 as an SDF file and process the molecules the following way:
+The benchmark will fetch ChEMBL 33 as an SDF file and process the molecules the following way:
 - Discard molecules that could not be read or sanitized by RDKit
 - Keep only the largest fragment
 - Keep only molecules with 2 to 50 heavy atoms

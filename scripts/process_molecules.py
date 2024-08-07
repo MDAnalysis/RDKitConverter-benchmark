@@ -1,14 +1,15 @@
-import os
 import gzip
 import multiprocessing as mp
-from tqdm.auto import tqdm
+import os
+
 from rdkit import Chem, RDLogger
 from rdkit.Chem.rdChemReactions import ReactionFromSmarts
-from utils import ROOT, DATA, N_WORKERS, apply_reaction
+from tqdm.auto import tqdm
 
+from utils import DATA, N_WORKERS, ROOT, apply_reaction
 
 # ignore warnings and errors
-RDLogger.DisableLog('rdApp.*')
+RDLogger.DisableLog("rdApp.*")
 
 # filters
 min_heavy_atoms = int(os.getenv("MIN_ATOMS", 2))
@@ -23,20 +24,20 @@ for i, rxn in enumerate(REACTIONS):
     REACTIONS[i] = ReactionFromSmarts(rxn)
 
 # files
-in_file = DATA / "chembl_30.sdf.gz"
+in_file = DATA / "chembl_33.sdf.gz"
 out_file = DATA / "chembl_processed.smi.gz"
 num_entries = int(open(DATA / ".fetched_count").read())
 
 # keep properties when pickling molecules
 Chem.SetDefaultPickleProperties(Chem.PropertyPickleOptions.MolProps)
 
+
 def prepare_input(mol):
     if not mol:
         return
     name = mol.GetProp("chembl_id")
     # only keep largest fragment
-    mol = max(Chem.GetMolFrags(mol, asMols=True), 
-              key=lambda m: m.GetNumHeavyAtoms())
+    mol = max(Chem.GetMolFrags(mol, asMols=True), key=lambda m: m.GetNumHeavyAtoms())
     # filter by heavy atom count
     count = mol.GetNumHeavyAtoms()
     if count > max_heavy_atoms or count < min_heavy_atoms:
@@ -46,7 +47,7 @@ def prepare_input(mol):
         return
     # sanitize
     for rxn in REACTIONS:
-        mol = apply_reaction(rxn, mol)
+        apply_reaction(rxn, mol)
     err = Chem.SanitizeMol(mol, catchErrors=True)
     if err:
         return
@@ -60,13 +61,15 @@ def prepare_input(mol):
 
 
 count = 0
-with mp.Pool(N_WORKERS) as pool, \
-     gzip.open(in_file, "r") as fi, \
-     gzip.open(out_file, "wt") as fo:
-
+with mp.Pool(N_WORKERS) as pool, gzip.open(in_file, "r") as fi, gzip.open(
+    out_file, "wt"
+) as fo:
     suppl = Chem.ForwardSDMolSupplier(fi)
-    for result in tqdm(pool.imap_unordered(prepare_input, suppl),
-                       total=num_entries, desc="Processing molecules"):
+    for result in tqdm(
+        pool.imap_unordered(prepare_input, suppl),
+        total=num_entries,
+        desc="Processing molecules",
+    ):
         if result:
             fo.write(result)
             count += 1
