@@ -1,5 +1,5 @@
 # MDAnalysis fork to use
-MDA_VERSION ?= 2.4.3
+MDA_VERSION ?= 2.5.0
 # Use conda or mamba
 CONDA ?= conda
 # Number of threads to use in parallel

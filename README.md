@@ -12,7 +12,7 @@ To cite this repository, please use the following DOI:
 
 | Description | Value |
 | --- | --- |
-| **MDAnalysis version** | 2.4.3 |
+| **MDAnalysis version** | 2.5.0 |
 | **Accuracy** | 99.19% |
 | **Number of molecules fetched** | 2,372,174 |
 | **Number of molecules processed** | 2,166,327 |
